@@ -53,3 +53,7 @@ Feature modules follow the `Controller → Service → Repository → Model` flo
 ## API status
 
 Business endpoints and Postman requests will be added in the next implementation step. This foundation currently provides centralized 404/error handling and no assignment business APIs.
+
+## Database models
+
+The User, Teacher, and Session Mongoose schemas are in their respective feature modules. They define required fields and timestamps; User email has a unique database index, while Teacher email is not unique. Sessions reference teachers and optionally users, default to `AVAILABLE`, and validate that the end time follows the start time. See [docs/architecture.md](docs/architecture.md) for the model relationships and index rationale.

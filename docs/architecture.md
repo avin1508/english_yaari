@@ -26,3 +26,12 @@ The application uses a modular monolith with the request flow:
 - `*.service.ts`: Business rules and coordination between repositories.
 - `*.controller.ts`: HTTP input/output mapping; no database or business logic.
 - `*.routes.ts`: Feature route definitions and validation/controller wiring.
+
+## Database schemas
+
+- `User` stores a learner's name, unique email, and phone number.
+- `Teacher` stores a teacher's name, email, specialization, and experience. Teacher email is not unique.
+- `Session` references one teacher and optionally one user. Its status is constrained to `AVAILABLE`, `BOOKED`, or `COMPLETED`.
+- Mongoose timestamps add `createdAt` and `updatedAt` to all three collections.
+
+The session indexes support date/status lookups for available sessions, a user's status/date history, and teacher schedules. The user email index enforces uniqueness in MongoDB. Required fields, the session status enum, defaults, and the end-after-start rule are enforced by Mongoose schema validation when documents are validated or saved.
