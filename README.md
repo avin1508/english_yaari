@@ -2,7 +2,7 @@
 
 TypeScript, Express, MongoDB, and Mongoose project foundation for the teacher session booking assignment.
 
-> The project foundation, Create User API, and Create Session API are implemented. The remaining assignment APIs are not implemented yet.
+> The project foundation, Create User API, Create Session API, and Available Sessions API are implemented. The remaining assignment APIs are not implemented yet.
 
 ## Requirements
 
@@ -91,6 +91,12 @@ npm run seed:teachers
 The script uses stable sample emails and only inserts records that are not already present. Query the Teacher collection to copy a teacher `_id` into the Postman `teacherId` variable.
 
 Overlap prevention currently checks for existing sessions and then inserts. This handles ordinary sequential requests but is **not race-safe** against concurrent requests for the same teacher. A transaction that serializes operations by writing the teacher record and checks overlap within that transaction is the simplest reliable approach in a MongoDB replica set; standalone MongoDB does not support transactions.
+
+### Get available sessions by date
+
+`GET /sessions/available?dateTimestamp=1795161600000`
+
+`dateTimestamp` is a Unix timestamp in milliseconds. The timestamp identifies a UTC calendar date; the endpoint returns sessions whose `startTime` is at or after 00:00 UTC on that date and before 00:00 UTC the following date. The time range is start-inclusive and end-exclusive. Results include selected teacher details and are sorted by start time ascending. The query uses a MongoDB aggregation pipeline.
 
 ## Database models
 

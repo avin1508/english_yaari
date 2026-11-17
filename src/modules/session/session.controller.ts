@@ -2,7 +2,15 @@ import type { Request, Response } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { sessionService } from './session.service';
-import type { CreateSessionInput } from './session.validation';
+import type { AvailableSessionsQuery, CreateSessionInput } from './session.validation';
+
+export const getAvailableSessionsController = asyncHandler(
+  async (_request: Request, response: Response): Promise<void> => {
+    const validated = response.locals.validated as { query: AvailableSessionsQuery };
+    const sessions = await sessionService.getAvailableSessions(validated.query);
+    response.status(200).json(new ApiResponse(sessions, 'Available sessions fetched successfully'));
+  },
+);
 
 export const createSessionController = asyncHandler(
   async (request: Request, response: Response): Promise<void> => {

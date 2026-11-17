@@ -37,3 +37,5 @@ The application uses a modular monolith with the request flow:
 The session indexes support date/status lookups for available sessions, a user's status/date history, and teacher schedules. The user email index enforces uniqueness in MongoDB. Required fields, the session status enum, defaults, and the end-after-start rule are enforced by Mongoose schema validation when documents are validated or saved.
 
 Session creation checks for an existing overlapping interval for the selected teacher before insert. This check is not atomic with the insert, so concurrent requests can both pass; safe serialization would require a transaction on a MongoDB replica set.
+
+Available sessions are queried in the session repository with an aggregation pipeline. The match stage filters `AVAILABLE` sessions within a start-inclusive, end-exclusive UTC calendar-day range; results are sorted by start time, joined to teachers with `$lookup`, flattened with `$unwind`, and projected to the response fields. The supplied Unix-millisecond timestamp determines the UTC date, not the server's local timezone.

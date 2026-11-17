@@ -1,9 +1,26 @@
 import { Types } from 'mongoose';
 import { ApiError } from '../../utils/ApiError';
 import { sessionRepository } from './session.repository';
-import type { CreateSessionInput } from './session.validation';
+import type { AvailableSessionsQuery, CreateSessionInput } from './session.validation';
 
 export const sessionService = {
+  getAvailableSessions: async (
+    query: AvailableSessionsQuery,
+  ): Promise<Awaited<ReturnType<typeof sessionRepository.findAvailableByDate>>> => {
+    const timestampDate = new Date(query.dateTimestamp);
+    const startOfDay = new Date(
+      Date.UTC(
+        timestampDate.getUTCFullYear(),
+        timestampDate.getUTCMonth(),
+        timestampDate.getUTCDate(),
+      ),
+    );
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+    return sessionRepository.findAvailableByDate(startOfDay, endOfDay);
+  },
+
   createSession: async (
     input: CreateSessionInput,
   ): Promise<Awaited<ReturnType<typeof sessionRepository.create>>> => {

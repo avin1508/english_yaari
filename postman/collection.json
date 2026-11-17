@@ -75,6 +75,33 @@
         },
         "description": "Create a session for an existing teacher. Set {{teacherId}} to a Teacher _id from MongoDB or the seed script. Expected response: HTTP 201 with success=true, status=AVAILABLE, userId=null, and completedAt=null."
       }
+    },
+    {
+      "name": "Get Available Sessions by Date",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/available?dateTimestamp={{dateTimestamp}}"
+        },
+        "description": "dateTimestamp is a Unix timestamp in milliseconds. Its UTC calendar date is queried from 00:00:00.000 inclusive to the next UTC midnight exclusive."
+      },
+      "response": [
+        {
+          "name": "Available Sessions",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sessions/available?dateTimestamp={{dateTimestamp}}"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Available sessions fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"674f12345678901234567890\",\n      \"teacher\": {\n        \"_id\": \"674f12345678901234567891\",\n        \"fullName\": \"Rahul Sharma\",\n        \"specialization\": \"Mathematics\",\n        \"experience\": 5\n      },\n      \"startTime\": \"2026-11-20T10:00:00.000Z\",\n      \"endTime\": \"2026-11-20T11:00:00.000Z\",\n      \"status\": \"AVAILABLE\"\n    }\n  ]\n}"
+        }
+      ]
     }
   ],
   "variable": [
@@ -85,6 +112,10 @@
     {
       "key": "teacherId",
       "value": "REPLACE_WITH_TEACHER_OBJECT_ID"
+    },
+    {
+      "key": "dateTimestamp",
+      "value": "1795161600000"
     }
   ]
 }

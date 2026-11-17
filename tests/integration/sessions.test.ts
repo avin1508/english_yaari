@@ -4,19 +4,19 @@ import { app } from '../../src/app';
 import { Session } from '../../src/modules/session/session.model';
 import { Teacher } from '../../src/modules/teacher/teacher.model';
 
+beforeAll(async () => {
+  const databaseName = `teacher-session-booking-session-tests-${process.pid}`;
+  await mongoose.connect(`mongodb://127.0.0.1:27017/${databaseName}`);
+  await Promise.all([Session.syncIndexes(), Teacher.syncIndexes()]);
+});
+
+afterAll(async () => {
+  await mongoose.connection.dropDatabase();
+  await mongoose.disconnect();
+});
+
 describe('POST /sessions', () => {
   let teacherId: string;
-
-  beforeAll(async () => {
-    const databaseName = `teacher-session-booking-session-tests-${process.pid}`;
-    await mongoose.connect(`mongodb://127.0.0.1:27017/${databaseName}`);
-    await Promise.all([Session.syncIndexes(), Teacher.syncIndexes()]);
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
-  });
 
   beforeEach(async () => {
     await Session.deleteMany({});
@@ -56,6 +56,113 @@ describe('POST /sessions', () => {
         status: 'AVAILABLE',
         completedAt: null,
       },
+    });
+  });
+
+  describe('GET /sessions/available', () => {
+    let teacherId: mongoose.Types.ObjectId;
+    const dateTimestamp = Date.UTC(2026, 10, 20, 12);
+
+    beforeEach(async () => {
+      await Session.deleteMany({});
+      await Teacher.deleteMany({});
+      const teacher = await Teacher.create({
+        fullName: 'Rahul Sharma',
+        email: 'rahul.sharma@example.com',
+        specialization: 'Mathematics',
+        experience: 5,
+      });
+      teacherId = teacher._id;
+    });
+
+    const insertSession = async (
+      startTime: string,
+      endTime: string,
+      status: 'AVAILABLE' | 'BOOKED' | 'COMPLETED' = 'AVAILABLE',
+    ): Promise<void> => {
+      await Session.create({
+        teacherId,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        status,
+      });
+    };
+
+    it('returns available sessions with teacher details sorted by start time', async () => {
+      await insertSession('2026-11-20T12:00:00.000Z', '2026-11-20T13:00:00.000Z');
+      await insertSession('2026-11-20T09:00:00.000Z', '2026-11-20T10:00:00.000Z');
+
+      const response = await request(app).get('/sessions/available').query({ dateTimestamp });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Available sessions fetched successfully');
+      expect(response.body.data).toHaveLength(2);
+      expect(response.body.data[0]).toMatchObject({
+        teacher: {
+          _id: teacherId.toString(),
+          fullName: 'Rahul Sharma',
+          specialization: 'Mathematics',
+          experience: 5,
+        },
+        startTime: '2026-11-20T09:00:00.000Z',
+        endTime: '2026-11-20T10:00:00.000Z',
+        status: 'AVAILABLE',
+      });
+      expect(new Date(response.body.data[0].startTime).getTime()).toBeLessThan(
+        new Date(response.body.data[1].startTime).getTime(),
+      );
+      expect(response.body.data[0].teacherId).toBeUndefined();
+    });
+
+    it('requires dateTimestamp', async () => {
+      const response = await request(app).get('/sessions/available');
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('rejects a non-numeric timestamp', async () => {
+      const response = await request(app)
+        .get('/sessions/available')
+        .query({ dateTimestamp: 'not-a-timestamp' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('rejects a numeric timestamp outside the valid Date range', async () => {
+      const response = await request(app)
+        .get('/sessions/available')
+        .query({ dateTimestamp: '8640000000000001' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('returns an empty list when no available sessions match the date', async () => {
+      const response = await request(app).get('/sessions/available').query({ dateTimestamp });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual([]);
+    });
+
+    it('excludes sessions from another UTC date', async () => {
+      await insertSession('2026-11-21T00:00:00.000Z', '2026-11-21T01:00:00.000Z');
+
+      const response = await request(app).get('/sessions/available').query({ dateTimestamp });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual([]);
+    });
+
+    it.each(['BOOKED', 'COMPLETED'] as const)('excludes %s sessions', async (status) => {
+      await insertSession('2026-11-20T10:00:00.000Z', '2026-11-20T11:00:00.000Z', status);
+
+      const response = await request(app).get('/sessions/available').query({ dateTimestamp });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual([]);
     });
   });
 
