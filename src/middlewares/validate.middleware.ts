@@ -15,6 +15,10 @@ export const validate = (schema: ZodType): RequestHandler => {
       return;
     }
 
+    if (typeof result.data === 'object' && result.data !== null && 'body' in result.data) {
+      request.body = result.data.body;
+    }
+
     response.locals.validated = result.data;
     next();
   };

@@ -2,7 +2,7 @@
 
 TypeScript, Express, MongoDB, and Mongoose project foundation for the teacher session booking assignment.
 
-> This setup intentionally does not implement the six business APIs. It provides the application structure, configuration, middleware, and test/build tooling required before feature work begins.
+> The project foundation, Create User API, and Create Session API are implemented. The remaining assignment APIs are not implemented yet.
 
 ## Requirements
 
@@ -50,9 +50,47 @@ TypeScript, Express, MongoDB, and Mongoose project foundation for the teacher se
 
 Feature modules follow the `Controller → Service → Repository → Model` flow. See [docs/architecture.md](docs/architecture.md) for the responsibility of each layer and folder.
 
-## API status
+## API
 
-Business endpoints and Postman requests will be added in the next implementation step. This foundation currently provides centralized 404/error handling and no assignment business APIs.
+### Create user
+
+`POST /users`
+
+```json
+{
+  "fullName": "Avinash Kumar",
+  "email": "avinash@gmail.com",
+  "phone": "9876543210"
+}
+```
+
+Successful requests return HTTP 201 and a `{ "success": true, "message": "...", "data": { ... } }` response. Invalid input returns HTTP 400; a previously registered email returns HTTP 409. Email is trimmed and lowercased before storage.
+
+The Postman example is available in [postman/collection.json](postman/collection.json). Remaining assignment endpoints will be implemented in later steps.
+
+### Create session
+
+`POST /sessions`
+
+```json
+{
+  "teacherId": "REPLACE_WITH_TEACHER_OBJECT_ID",
+  "startTime": "2026-11-20T10:00:00.000Z",
+  "endTime": "2026-11-20T11:00:00.000Z"
+}
+```
+
+The teacher must already exist. End time must be later than start time, and the request is rejected if the teacher has an overlapping session. New sessions default to `AVAILABLE`, with `userId` and `completedAt` set to `null`.
+
+To insert sample teachers idempotently, start MongoDB and run:
+
+```sh
+npm run seed:teachers
+```
+
+The script uses stable sample emails and only inserts records that are not already present. Query the Teacher collection to copy a teacher `_id` into the Postman `teacherId` variable.
+
+Overlap prevention currently checks for existing sessions and then inserts. This handles ordinary sequential requests but is **not race-safe** against concurrent requests for the same teacher. A transaction that serializes operations by writing the teacher record and checks overlap within that transaction is the simplest reliable approach in a MongoDB replica set; standalone MongoDB does not support transactions.
 
 ## Database models
 

@@ -35,3 +35,5 @@ The application uses a modular monolith with the request flow:
 - Mongoose timestamps add `createdAt` and `updatedAt` to all three collections.
 
 The session indexes support date/status lookups for available sessions, a user's status/date history, and teacher schedules. The user email index enforces uniqueness in MongoDB. Required fields, the session status enum, defaults, and the end-after-start rule are enforced by Mongoose schema validation when documents are validated or saved.
+
+Session creation checks for an existing overlapping interval for the selected teacher before insert. This check is not atomic with the insert, so concurrent requests can both pass; safe serialization would require a transaction on a MongoDB replica set.
