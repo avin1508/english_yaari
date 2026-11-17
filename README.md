@@ -217,9 +217,9 @@ Errors: `400` invalid ObjectId, missing fields, invalid dates, or `endTime` not 
 
 ### 3. Get available sessions by date
 
-**`GET /sessions/available?dateTimestamp={timestamp}`** — Return available sessions whose `startTime` falls on the supplied UTC calendar date. `dateTimestamp` is a required Unix timestamp in milliseconds. Date filtering is inclusive at UTC midnight and exclusive at the next UTC midnight. Results are sorted by start time and include selected teacher details. This endpoint uses a MongoDB aggregation pipeline.
+**`GET /sessions/available?date=YYYY-MM-DD`** — Return available sessions whose `startTime` falls on the supplied UTC calendar date. For convenience, the API accepts a human-readable `date` in `YYYY-MM-DD` format; the assignment-compatible `dateTimestamp` Unix milliseconds parameter is also supported. Date filtering is inclusive at UTC midnight and exclusive at the next UTC midnight. Results are sorted by start time and include selected teacher details. This endpoint uses a MongoDB aggregation pipeline.
 
-Example: `GET /sessions/available?dateTimestamp=1795161600000`
+Example: `GET /sessions/available?date=2026-11-20`
 
 Success (`200 OK`):
 
@@ -244,7 +244,7 @@ Success (`200 OK`):
 }
 ```
 
-No matches return `200` with `"data": []`. Errors: `400` missing, malformed, or out-of-range timestamp.
+No matches return `200` with `"data": []`. Errors: `400` when both date parameters are missing, malformed, or supplied together.
 
 ### 4. Book a session
 
@@ -357,7 +357,7 @@ Import `postman/collection.json` into Postman. Set the collection variables:
 - `teacherId`: existing Teacher ObjectId (sample teachers can be inserted with `npm run seed:teachers`)
 - `userId`: User ObjectId
 - `sessionId`: Session ObjectId
-- `dateTimestamp`: Unix timestamp in milliseconds
+- `date`: date in `YYYY-MM-DD` format for available-session searches (or `dateTimestamp` as Unix milliseconds)
 
 The collection includes all six requests and representative success/error examples. Copy resource IDs from API responses or your MongoDB client into the corresponding variables.
 

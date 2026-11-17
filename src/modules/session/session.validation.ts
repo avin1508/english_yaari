@@ -34,10 +34,35 @@ const dateTimestampSchema = z
     return !Number.isNaN(nextUtcMidnight);
   }, 'dateTimestamp must represent a valid UTC date');
 
+const dateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must use YYYY-MM-DD format')
+  .transform((value) => {
+    const [year, month, day] = value.split('-').map(Number);
+    const timestamp = Date.UTC(year, month - 1, day);
+    const parsedDate = new Date(timestamp);
+
+    if (
+      parsedDate.getUTCFullYear() !== year ||
+      parsedDate.getUTCMonth() !== month - 1 ||
+      parsedDate.getUTCDate() !== day
+    ) {
+      return Number.NaN;
+    }
+
+    return timestamp;
+  })
+  .refine(Number.isSafeInteger, 'date must be a valid calendar date');
+
 export const availableSessionsSchema = z.object({
-  query: z.object({
-    dateTimestamp: dateTimestampSchema,
-  }),
+  query: z.union([
+    z
+      .object({ date: dateSchema, dateTimestamp: z.never().optional() })
+      .transform(({ date }) => ({ dateTimestamp: date })),
+    z
+      .object({ dateTimestamp: dateTimestampSchema, date: z.never().optional() })
+      .transform(({ dateTimestamp }) => ({ dateTimestamp })),
+  ]),
 });
 
 const bookSessionParamsSchema = z.object({

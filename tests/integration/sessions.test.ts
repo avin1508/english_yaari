@@ -386,8 +386,25 @@ describe('POST /sessions', () => {
       expect(response.body.data[0].teacherId).toBeUndefined();
     });
 
-    it('requires dateTimestamp', async () => {
+    it('accepts a human-readable UTC date', async () => {
+      await insertSession('2026-11-20T12:00:00.000Z', '2026-11-20T13:00:00.000Z');
+
+      const response = await request(app).get('/sessions/available').query({ date: '2026-11-20' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].startTime).toBe('2026-11-20T12:00:00.000Z');
+    });
+
+    it('requires a date or dateTimestamp', async () => {
       const response = await request(app).get('/sessions/available');
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('rejects an invalid human-readable calendar date', async () => {
+      const response = await request(app).get('/sessions/available').query({ date: '2026-02-30' });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);

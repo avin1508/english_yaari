@@ -285,9 +285,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/sessions/available?dateTimestamp={{dateTimestamp}}"
+          "raw": "{{baseUrl}}/sessions/available?date={{date}}"
         },
-        "description": "dateTimestamp is a Unix timestamp in milliseconds. Its UTC calendar date is queried from 00:00:00.000 inclusive to the next UTC midnight exclusive."
+        "description": "Use a human-readable date in YYYY-MM-DD format. The API also supports the assignment-compatible dateTimestamp Unix milliseconds parameter. The UTC date range is start-inclusive and next-midnight-exclusive."
       },
       "response": [
         {
@@ -295,7 +295,7 @@
           "originalRequest": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/sessions/available?dateTimestamp={{dateTimestamp}}"
+            "url": "{{baseUrl}}/sessions/available?date={{date}}"
           },
           "status": "OK",
           "code": 200,
@@ -310,11 +310,11 @@
           "body": "{\n  \"success\": true,\n  \"message\": \"Available sessions fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"674f12345678901234567890\",\n      \"teacher\": {\n        \"_id\": \"674f12345678901234567891\",\n        \"fullName\": \"Rahul Sharma\",\n        \"specialization\": \"Mathematics\",\n        \"experience\": 5\n      },\n      \"startTime\": \"2026-11-20T10:00:00.000Z\",\n      \"endTime\": \"2026-11-20T11:00:00.000Z\",\n      \"status\": \"AVAILABLE\"\n    }\n  ]\n}"
         },
         {
-          "name": "Invalid timestamp",
+          "name": "Invalid date",
           "originalRequest": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/sessions/available?dateTimestamp=invalid"
+            "url": "{{baseUrl}}/sessions/available?date=2026-02-30"
           },
           "status": "Bad Request",
           "code": 400,
@@ -503,8 +503,8 @@
       "value": "REPLACE_WITH_TEACHER_OBJECT_ID"
     },
     {
-      "key": "dateTimestamp",
-      "value": "1795161600000"
+      "key": "date",
+      "value": "2026-11-20"
     },
     {
       "key": "sessionId",
