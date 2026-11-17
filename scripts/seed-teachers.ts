@@ -1,5 +1,4 @@
 import { connectDatabase, disconnectDatabase } from '../src/config/database';
-import { env } from '../src/config/env';
 import { Teacher } from '../src/modules/teacher/teacher.model';
 
 const teachers = [
@@ -24,7 +23,7 @@ const teachers = [
 ];
 
 const seedTeachers = async (): Promise<void> => {
-  await connectDatabase(env.MONGODB_URI);
+  await connectDatabase();
 
   try {
     for (const teacher of teachers) {

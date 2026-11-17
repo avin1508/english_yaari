@@ -160,14 +160,13 @@ describe('POST /sessions', () => {
       });
     });
 
-    it('allows exactly one of two concurrent completion requests', async () => {
-      const responses = await Promise.all([
-        request(app).patch(`/sessions/${sessionId}/complete`),
-        request(app).patch(`/sessions/${sessionId}/complete`),
-      ]);
+    it('allows exactly one of five concurrent completion requests', async () => {
+      const responses = await Promise.all(
+        Array.from({ length: 5 }, () => request(app).patch(`/sessions/${sessionId}/complete`)),
+      );
 
       expect(responses.filter((response) => response.status === 200)).toHaveLength(1);
-      expect(responses.filter((response) => response.status === 409)).toHaveLength(1);
+      expect(responses.filter((response) => response.status === 409)).toHaveLength(4);
 
       const storedSession = await Session.findById(sessionId);
       expect(storedSession?.status).toBe('COMPLETED');
@@ -309,18 +308,21 @@ describe('POST /sessions', () => {
       });
     });
 
-    it('allows exactly one of two simultaneous booking requests', async () => {
-      const responses = await Promise.all([
-        request(app).post(`/sessions/${sessionId}/book`).send({ userId: firstUserId }),
-        request(app).post(`/sessions/${sessionId}/book`).send({ userId: secondUserId }),
-      ]);
+    it('allows exactly one of five simultaneous booking requests', async () => {
+      const responses = await Promise.all(
+        Array.from({ length: 5 }, (_, index) =>
+          request(app)
+            .post(`/sessions/${sessionId}/book`)
+            .send({ userId: index % 2 === 0 ? firstUserId : secondUserId }),
+        ),
+      );
 
       const successfulResponses = responses.filter((response) => response.status === 200);
       const conflictResponses = responses.filter((response) => response.status === 409);
 
       expect(successfulResponses).toHaveLength(1);
-      expect(conflictResponses).toHaveLength(1);
-      expect(conflictResponses[0].body.success).toBe(false);
+      expect(conflictResponses).toHaveLength(4);
+      expect(conflictResponses.every((response) => response.body.success === false)).toBe(true);
 
       const storedSession = await Session.findById(sessionId);
       expect(storedSession?.status).toBe('BOOKED');
@@ -432,6 +434,101 @@ describe('POST /sessions', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.data).toEqual([]);
+    });
+  });
+
+  describe('complete booking workflow', () => {
+    beforeEach(async () => {
+      await Promise.all([Session.deleteMany({}), Teacher.deleteMany({}), User.deleteMany({})]);
+    });
+
+    it('creates, lists, books, completes, and returns a user session consistently', async () => {
+      const userResponse = await request(app).post('/users').send({
+        fullName: 'Workflow User',
+        email: 'workflow.user@example.com',
+        phone: '5551234567',
+      });
+      expect(userResponse.status).toBe(201);
+      const userId = userResponse.body.data._id as string;
+
+      const teacher = await Teacher.create({
+        fullName: 'Workflow Teacher',
+        email: 'workflow.teacher@example.com',
+        specialization: 'Mathematics',
+        experience: 9,
+      });
+
+      const sessionResponse = await request(app).post('/sessions').send({
+        teacherId: teacher.id,
+        startTime: '2026-11-25T10:00:00.000Z',
+        endTime: '2026-11-25T11:00:00.000Z',
+      });
+      expect(sessionResponse.status).toBe(201);
+
+      const sessionId = sessionResponse.body.data._id as string;
+      expect(sessionResponse.body.data).toMatchObject({
+        status: 'AVAILABLE',
+        userId: null,
+        completedAt: null,
+      });
+
+      const dateTimestamp = Date.UTC(2026, 10, 25);
+      const availableResponse = await request(app)
+        .get('/sessions/available')
+        .query({ dateTimestamp });
+      expect(availableResponse.status).toBe(200);
+      expect(availableResponse.body.data.map((session: { _id: string }) => session._id)).toContain(
+        sessionId,
+      );
+
+      const bookingResponse = await request(app)
+        .post(`/sessions/${sessionId}/book`)
+        .send({ userId });
+      expect(bookingResponse.status).toBe(200);
+      expect(bookingResponse.body.data).toMatchObject({
+        _id: sessionId,
+        userId,
+        status: 'BOOKED',
+        completedAt: null,
+      });
+
+      const bookedSession = await Session.findById(sessionId);
+      expect(bookedSession?.status).toBe('BOOKED');
+      expect(bookedSession?.userId?.toString()).toBe(userId);
+      expect(bookedSession?.completedAt).toBeNull();
+
+      const noLongerAvailable = await request(app)
+        .get('/sessions/available')
+        .query({ dateTimestamp });
+      expect(noLongerAvailable.status).toBe(200);
+      expect(noLongerAvailable.body.data).toEqual([]);
+
+      const completionResponse = await request(app).patch(`/sessions/${sessionId}/complete`);
+      expect(completionResponse.status).toBe(200);
+      expect(completionResponse.body.data).toMatchObject({
+        _id: sessionId,
+        userId,
+        status: 'COMPLETED',
+      });
+      expect(Number.isNaN(new Date(completionResponse.body.data.completedAt).getTime())).toBe(
+        false,
+      );
+
+      const completedSession = await Session.findById(sessionId);
+      expect(completedSession?.status).toBe('COMPLETED');
+      expect(completedSession?.userId?.toString()).toBe(userId);
+      expect(completedSession?.completedAt).toBeInstanceOf(Date);
+      expect(completedSession?.completedAt?.getTime()).not.toBeNaN();
+
+      const historyResponse = await request(app).get(`/users/${userId}/sessions`);
+      expect(historyResponse.status).toBe(200);
+      expect(historyResponse.body.data.upcomingSessions).toEqual([]);
+      expect(historyResponse.body.data.completedSessions).toHaveLength(1);
+      expect(historyResponse.body.data.completedSessions[0]).toMatchObject({
+        _id: sessionId,
+        userId,
+        status: 'COMPLETED',
+      });
     });
   });
 

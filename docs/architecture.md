@@ -7,15 +7,15 @@ The application uses a modular monolith with the request flow:
 ## Responsibilities
 
 - `src/config/`: Parse environment variables and establish or close the MongoDB connection.
-- `src/modules/`: Feature modules. Each module owns its model, validation, repository, service, controller, and routes. Business APIs are intentionally not implemented in this foundation.
+- `src/modules/`: Feature modules. Each module owns its model, validation, repository, service, controller, and routes.
 - `src/middlewares/`: Express request validation, centralized error responses, and unknown-route handling.
 - `src/utils/`: Reusable API error/response types and async controller error forwarding.
-- `src/constants/`: Shared domain constants, such as session statuses, when business modules are added.
-- `src/routes/`: Mount feature routers under the API prefix.
+- `src/constants/`: Shared domain constants, including session statuses.
+- `src/routes/`: Mount feature routers at their public URL paths.
 - `src/app.ts`: Compose Express middleware and routers without starting a listener.
 - `src/server.ts`: Connect to MongoDB, start the HTTP listener, and handle graceful shutdown.
 - `tests/`: Integration tests and shared test helpers.
-- `postman/`: Postman collection for API requests. It is empty until business endpoints are implemented.
+- `postman/`: Postman collection with example API requests and responses.
 
 ## Feature module responsibilities
 
@@ -26,6 +26,10 @@ The application uses a modular monolith with the request flow:
 - `*.service.ts`: Business rules and coordination between repositories.
 - `*.controller.ts`: HTTP input/output mapping; no database or business logic.
 - `*.routes.ts`: Feature route definitions and validation/controller wiring.
+
+## Environment and database configuration
+
+`src/config/env.ts` loads `.env` and validates `NODE_ENV`, `PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_CLUSTER_URL`, and `DB_NAME`. The MongoDB URI is constructed in `src/config/database.ts`; credentials and database name are URL-encoded and are not hardcoded.
 
 ## Database schemas
 
@@ -45,3 +49,7 @@ Booking uses `findOneAndUpdate` with `_id` and `AVAILABLE` in the same filter as
 Completion likewise uses a conditional atomic update matching `_id` and `BOOKED`, then sets `COMPLETED` and `completedAt`. Only after a non-match does the service read the current status to distinguish a missing session from an invalid state. Concurrent completion attempts therefore result in one success and one conflict.
 
 User session history first verifies that the user exists, then fetches session records in MongoDB with a repository aggregation. `$match` scopes documents by `userId`, and `$facet` partitions `BOOKED` and `COMPLETED` records into independently sorted arrays; `AVAILABLE` records are not included. Empty results are normalized to the two empty arrays in the repository.
+
+## HTTP behavior
+
+`src/app.ts` applies JSON parsing with a 100 KB limit and baseline security headers before mounting routes. Validation and application errors use the centralized error middleware. Unexpected errors return a generic 500 response; logs record the error type without request payloads or error details.

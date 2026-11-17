@@ -35,7 +35,12 @@
           "name": "Created",
           "originalRequest": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"fullName\": \"Avinash Kumar\",\n  \"email\": \"avinash@gmail.com\",\n  \"phone\": \"9876543210\"\n}"
@@ -45,9 +50,70 @@
           "status": "Created",
           "code": 201,
           "_postman_previewlanguage": "json",
-          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
           "cookie": [],
           "body": "{\n  \"success\": true,\n  \"message\": \"User created successfully\",\n  \"data\": {\n    \"_id\": \"674f12345678901234567890\",\n    \"fullName\": \"Avinash Kumar\",\n    \"email\": \"avinash@gmail.com\",\n    \"phone\": \"9876543210\",\n    \"createdAt\": \"2026-11-17T12:00:00.000Z\",\n    \"updatedAt\": \"2026-11-17T12:00:00.000Z\",\n    \"__v\": 0\n  }\n}"
+        },
+        {
+          "name": "Duplicate email",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Avinash Kumar\",\n  \"email\": \"avinash@gmail.com\",\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": "{{baseUrl}}/users"
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"A user with this email already exists\"\n}"
+        },
+        {
+          "name": "Invalid request",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"\",\n  \"email\": \"not-an-email\",\n  \"phone\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/users"
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Request validation failed\"\n}"
         }
       ]
     },
@@ -72,9 +138,33 @@
           "status": "OK",
           "code": 200,
           "_postman_previewlanguage": "json",
-          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
           "cookie": [],
           "body": "{\n  \"success\": true,\n  \"message\": \"User sessions fetched successfully\",\n  \"data\": {\n    \"upcomingSessions\": [\n      {\n        \"_id\": \"674f12345678901234567890\",\n        \"teacherId\": \"674f12345678901234567891\",\n        \"userId\": \"674f12345678901234567892\",\n        \"startTime\": \"2026-11-20T10:00:00.000Z\",\n        \"endTime\": \"2026-11-20T11:00:00.000Z\",\n        \"status\": \"BOOKED\",\n        \"completedAt\": null\n      }\n    ],\n    \"completedSessions\": [\n      {\n        \"_id\": \"674f12345678901234567893\",\n        \"teacherId\": \"674f12345678901234567891\",\n        \"userId\": \"674f12345678901234567892\",\n        \"startTime\": \"2026-11-18T10:00:00.000Z\",\n        \"endTime\": \"2026-11-18T11:00:00.000Z\",\n        \"status\": \"COMPLETED\",\n        \"completedAt\": \"2026-11-18T11:00:00.000Z\"\n      }\n    ]\n  }\n}"
+        },
+        {
+          "name": "User not found",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/{{userId}}/sessions"
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"User not found\"\n}"
         }
       ]
     },
@@ -101,7 +191,93 @@
           "raw": "{{baseUrl}}/sessions"
         },
         "description": "Create a session for an existing teacher. Set {{teacherId}} to a Teacher _id from MongoDB or the seed script. Expected response: HTTP 201 with success=true, status=AVAILABLE, userId=null, and completedAt=null."
-      }
+      },
+      "response": [
+        {
+          "name": "Created",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teacherId\": \"{{teacherId}}\",\n  \"startTime\": \"2026-11-20T10:00:00.000Z\",\n  \"endTime\": \"2026-11-20T11:00:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/sessions"
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Session created successfully\",\n  \"data\": {\n    \"_id\": \"674f12345678901234567890\",\n    \"teacherId\": \"674f12345678901234567891\",\n    \"userId\": null,\n    \"startTime\": \"2026-11-20T10:00:00.000Z\",\n    \"endTime\": \"2026-11-20T11:00:00.000Z\",\n    \"status\": \"AVAILABLE\",\n    \"completedAt\": null,\n    \"createdAt\": \"2026-11-17T12:00:00.000Z\",\n    \"updatedAt\": \"2026-11-17T12:00:00.000Z\",\n    \"__v\": 0\n  }\n}"
+        },
+        {
+          "name": "Teacher not found",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teacherId\": \"674f12345678901234567891\",\n  \"startTime\": \"2026-11-20T10:00:00.000Z\",\n  \"endTime\": \"2026-11-20T11:00:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/sessions"
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Teacher not found\"\n}"
+        },
+        {
+          "name": "Overlapping session",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teacherId\": \"{{teacherId}}\",\n  \"startTime\": \"2026-11-20T10:30:00.000Z\",\n  \"endTime\": \"2026-11-20T11:30:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/sessions"
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"This teacher already has an overlapping session\"\n}"
+        }
+      ]
     },
     {
       "name": "Get Available Sessions by Date",
@@ -124,9 +300,33 @@
           "status": "OK",
           "code": 200,
           "_postman_previewlanguage": "json",
-          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
           "cookie": [],
           "body": "{\n  \"success\": true,\n  \"message\": \"Available sessions fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"674f12345678901234567890\",\n      \"teacher\": {\n        \"_id\": \"674f12345678901234567891\",\n        \"fullName\": \"Rahul Sharma\",\n        \"specialization\": \"Mathematics\",\n        \"experience\": 5\n      },\n      \"startTime\": \"2026-11-20T10:00:00.000Z\",\n      \"endTime\": \"2026-11-20T11:00:00.000Z\",\n      \"status\": \"AVAILABLE\"\n    }\n  ]\n}"
+        },
+        {
+          "name": "Invalid timestamp",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sessions/available?dateTimestamp=invalid"
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Request validation failed\"\n}"
         }
       ]
     },
@@ -159,7 +359,12 @@
           "name": "Booked",
           "originalRequest": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
@@ -169,15 +374,53 @@
           "status": "OK",
           "code": 200,
           "_postman_previewlanguage": "json",
-          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
           "cookie": [],
           "body": "{\n  \"success\": true,\n  \"message\": \"Session booked successfully\",\n  \"data\": {\n    \"_id\": \"674f12345678901234567890\",\n    \"teacherId\": \"674f12345678901234567891\",\n    \"userId\": \"674f12345678901234567892\",\n    \"startTime\": \"2026-11-20T10:00:00.000Z\",\n    \"endTime\": \"2026-11-20T11:00:00.000Z\",\n    \"status\": \"BOOKED\",\n    \"completedAt\": null\n  }\n}"
+        },
+        {
+          "name": "User not found",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"674f12345678901234567892\"\n}"
+            },
+            "url": "{{baseUrl}}/sessions/{{sessionId}}/book"
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"User not found\"\n}"
         },
         {
           "name": "Already booked",
           "originalRequest": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
@@ -187,7 +430,12 @@
           "status": "Conflict",
           "code": 409,
           "_postman_previewlanguage": "json",
-          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
           "cookie": [],
           "body": "{\n  \"success\": false,\n  \"message\": \"Session cannot be booked because it is BOOKED\"\n}"
         }
@@ -214,9 +462,14 @@
           "status": "OK",
           "code": 200,
           "_postman_previewlanguage": "json",
-          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
           "cookie": [],
-          "body": "{\n  \"success\": true,\n  \"message\": \"Session completed successfully\",\n  \"data\": {\n    \"_id\": \"674f12345678901234567890\",\n    \"teacherId\": \"674f12345678901234567891\",\n    \"userId\": \"674f12345678901234567892\",\n    \"startTime\": \"2026-11-20T10:00:00.000Z\",\n    \"endTime\": \"2026-11-20T11:00:00.000Z\",\n    \"status\": \"COMPLETED\",\n    \"completedAt\": \"2026-11-20T11:00:00.000Z\"\n  }"
+          "body": "{\n  \"success\": true,\n  \"message\": \"Session completed successfully\",\n  \"data\": {\n    \"_id\": \"674f12345678901234567890\",\n    \"teacherId\": \"674f12345678901234567891\",\n    \"userId\": \"674f12345678901234567892\",\n    \"startTime\": \"2026-11-20T10:00:00.000Z\",\n    \"endTime\": \"2026-11-20T11:00:00.000Z\",\n    \"status\": \"COMPLETED\",\n    \"completedAt\": \"2026-11-20T11:00:00.000Z\"\n  }\n}"
         },
         {
           "name": "Invalid session state",
@@ -228,7 +481,12 @@
           "status": "Conflict",
           "code": 409,
           "_postman_previewlanguage": "json",
-          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
           "cookie": [],
           "body": "{\n  \"success\": false,\n  \"message\": \"Session cannot be completed because it is AVAILABLE\"\n}"
         }
