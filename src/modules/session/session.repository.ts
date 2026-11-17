@@ -18,6 +18,23 @@ export interface AvailableSession {
   status: SessionStatus;
 }
 
+export interface UserSessionHistoryItem {
+  _id: Types.ObjectId;
+  teacherId: Types.ObjectId;
+  userId: Types.ObjectId;
+  startTime: Date;
+  endTime: Date;
+  status: SessionStatus;
+  completedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserSessionHistory {
+  upcomingSessions: UserSessionHistoryItem[];
+  completedSessions: UserSessionHistoryItem[];
+}
+
 export const sessionRepository = {
   teacherExists: async (teacherId: Types.ObjectId): Promise<boolean> => {
     const teacher = await Teacher.exists({ _id: teacherId });
@@ -78,5 +95,78 @@ export const sessionRepository = {
         },
       },
     ]).exec();
+  },
+
+  bookIfAvailable: async (
+    sessionId: Types.ObjectId,
+    userId: Types.ObjectId,
+  ): Promise<InstanceType<typeof Session> | null> => {
+    return Session.findOneAndUpdate(
+      { _id: sessionId, status: SESSION_STATUS.AVAILABLE },
+      { $set: { status: SESSION_STATUS.BOOKED, userId } },
+      { new: true, runValidators: true },
+    ).exec();
+  },
+
+  completeIfBooked: async (
+    sessionId: Types.ObjectId,
+    completedAt: Date,
+  ): Promise<InstanceType<typeof Session> | null> => {
+    return Session.findOneAndUpdate(
+      { _id: sessionId, status: SESSION_STATUS.BOOKED },
+      { $set: { status: SESSION_STATUS.COMPLETED, completedAt } },
+      { new: true, runValidators: true },
+    ).exec();
+  },
+
+  findStatusById: async (sessionId: Types.ObjectId): Promise<SessionStatus | null> => {
+    const session = await Session.findById(sessionId).select('status').lean().exec();
+    return session?.status ?? null;
+  },
+
+  findHistoryByUser: async (userId: Types.ObjectId): Promise<UserSessionHistory> => {
+    const [history] = await Session.aggregate<UserSessionHistory>([
+      { $match: { userId } },
+      {
+        $facet: {
+          upcomingSessions: [
+            { $match: { status: SESSION_STATUS.BOOKED } },
+            { $sort: { startTime: 1 } },
+            {
+              $project: {
+                _id: 1,
+                teacherId: 1,
+                userId: 1,
+                startTime: 1,
+                endTime: 1,
+                status: 1,
+                completedAt: 1,
+                createdAt: 1,
+                updatedAt: 1,
+              },
+            },
+          ],
+          completedSessions: [
+            { $match: { status: SESSION_STATUS.COMPLETED } },
+            { $sort: { startTime: 1 } },
+            {
+              $project: {
+                _id: 1,
+                teacherId: 1,
+                userId: 1,
+                startTime: 1,
+                endTime: 1,
+                status: 1,
+                completedAt: 1,
+                createdAt: 1,
+                updatedAt: 1,
+              },
+            },
+          ],
+        },
+      },
+    ]).exec();
+
+    return history ?? { upcomingSessions: [], completedSessions: [] };
   },
 };

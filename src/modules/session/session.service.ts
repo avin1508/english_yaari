@@ -1,9 +1,56 @@
 import { Types } from 'mongoose';
 import { ApiError } from '../../utils/ApiError';
 import { sessionRepository } from './session.repository';
-import type { AvailableSessionsQuery, CreateSessionInput } from './session.validation';
+import { userRepository } from '../user/user.repository';
+import type {
+  AvailableSessionsQuery,
+  BookSessionInput,
+  CreateSessionInput,
+} from './session.validation';
 
 export const sessionService = {
+  bookSession: async (
+    sessionId: string,
+    input: BookSessionInput['body'],
+  ): Promise<NonNullable<Awaited<ReturnType<typeof sessionRepository.bookIfAvailable>>>> => {
+    const objectId = new Types.ObjectId(sessionId);
+    const userId = new Types.ObjectId(input.userId);
+
+    if (!(await userRepository.existsById(userId))) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    const bookedSession = await sessionRepository.bookIfAvailable(objectId, userId);
+    if (bookedSession !== null) {
+      return bookedSession;
+    }
+
+    const currentStatus = await sessionRepository.findStatusById(objectId);
+    if (currentStatus === null) {
+      throw new ApiError(404, 'Session not found');
+    }
+
+    throw new ApiError(409, `Session cannot be booked because it is ${currentStatus}`);
+  },
+
+  completeSession: async (
+    sessionId: string,
+  ): Promise<NonNullable<Awaited<ReturnType<typeof sessionRepository.completeIfBooked>>>> => {
+    const objectId = new Types.ObjectId(sessionId);
+    const session = await sessionRepository.completeIfBooked(objectId, new Date());
+
+    if (session !== null) {
+      return session;
+    }
+
+    const currentStatus = await sessionRepository.findStatusById(objectId);
+    if (currentStatus === null) {
+      throw new ApiError(404, 'Session not found');
+    }
+
+    throw new ApiError(409, `Session cannot be completed because it is ${currentStatus}`);
+  },
+
   getAvailableSessions: async (
     query: AvailableSessionsQuery,
   ): Promise<Awaited<ReturnType<typeof sessionRepository.findAvailableByDate>>> => {

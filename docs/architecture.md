@@ -39,3 +39,9 @@ The session indexes support date/status lookups for available sessions, a user's
 Session creation checks for an existing overlapping interval for the selected teacher before insert. This check is not atomic with the insert, so concurrent requests can both pass; safe serialization would require a transaction on a MongoDB replica set.
 
 Available sessions are queried in the session repository with an aggregation pipeline. The match stage filters `AVAILABLE` sessions within a start-inclusive, end-exclusive UTC calendar-day range; results are sorted by start time, joined to teachers with `$lookup`, flattened with `$unwind`, and projected to the response fields. The supplied Unix-millisecond timestamp determines the UTC date, not the server's local timezone.
+
+Booking uses `findOneAndUpdate` with `_id` and `AVAILABLE` in the same filter as the status and user assignment update. MongoDB applies this single-document update atomically, so only one concurrent request can match the available state. If the atomic update does not match, a follow-up read distinguishes a missing session (404) from a session in a non-bookable state (409).
+
+Completion likewise uses a conditional atomic update matching `_id` and `BOOKED`, then sets `COMPLETED` and `completedAt`. Only after a non-match does the service read the current status to distinguish a missing session from an invalid state. Concurrent completion attempts therefore result in one success and one conflict.
+
+User session history first verifies that the user exists, then fetches session records in MongoDB with a repository aggregation. `$match` scopes documents by `userId`, and `$facet` partitions `BOOKED` and `COMPLETED` records into independently sorted arrays; `AVAILABLE` records are not included. Empty results are normalized to the two empty arrays in the repository.

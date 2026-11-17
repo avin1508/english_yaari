@@ -3,11 +3,12 @@ import request from 'supertest';
 import { app } from '../../src/app';
 import { Session } from '../../src/modules/session/session.model';
 import { Teacher } from '../../src/modules/teacher/teacher.model';
+import { User } from '../../src/modules/user/user.model';
 
 beforeAll(async () => {
   const databaseName = `teacher-session-booking-session-tests-${process.pid}`;
   await mongoose.connect(`mongodb://127.0.0.1:27017/${databaseName}`);
-  await Promise.all([Session.syncIndexes(), Teacher.syncIndexes()]);
+  await Promise.all([Session.syncIndexes(), Teacher.syncIndexes(), User.syncIndexes()]);
 });
 
 afterAll(async () => {
@@ -56,6 +57,274 @@ describe('POST /sessions', () => {
         status: 'AVAILABLE',
         completedAt: null,
       },
+    });
+  });
+
+  describe('PATCH /sessions/:id/complete', () => {
+    let sessionId: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      await Session.deleteMany({});
+      await Teacher.deleteMany({});
+      await User.deleteMany({});
+
+      const [teacher, user] = await Promise.all([
+        Teacher.create({
+          fullName: 'Completion Teacher',
+          email: 'completion.teacher@example.com',
+          specialization: 'Science',
+          experience: 7,
+        }),
+        User.create({
+          fullName: 'Completed Session User',
+          email: 'completed.session.user@example.com',
+          phone: '3333333333',
+        }),
+      ]);
+
+      userId = user.id;
+      const session = await Session.create({
+        teacherId: teacher._id,
+        userId: user._id,
+        startTime: new Date('2026-11-20T10:00:00.000Z'),
+        endTime: new Date('2026-11-20T11:00:00.000Z'),
+        status: 'BOOKED',
+      });
+      sessionId = session.id;
+    });
+
+    it('completes a booked session and preserves its user', async () => {
+      const response = await request(app).patch(`/sessions/${sessionId}/complete`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        success: true,
+        message: 'Session completed successfully',
+        data: {
+          _id: sessionId,
+          userId,
+          status: 'COMPLETED',
+        },
+      });
+      expect(response.body.data.completedAt).toBeDefined();
+      expect(Number.isNaN(new Date(response.body.data.completedAt).getTime())).toBe(false);
+
+      const storedSession = await Session.findById(sessionId);
+      expect(storedSession?.status).toBe('COMPLETED');
+      expect(storedSession?.completedAt).toBeInstanceOf(Date);
+      expect(storedSession?.completedAt?.getTime()).not.toBeNaN();
+      expect(storedSession?.userId?.toString()).toBe(userId);
+    });
+
+    it('returns 404 when the session does not exist', async () => {
+      const response = await request(app).patch(
+        `/sessions/${new mongoose.Types.ObjectId().toString()}/complete`,
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ success: false, message: 'Session not found' });
+    });
+
+    it('rejects an invalid session ID', async () => {
+      const response = await request(app).patch('/sessions/not-an-object-id/complete');
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('returns 409 when the session is available', async () => {
+      await Session.findByIdAndUpdate(sessionId, { status: 'AVAILABLE', userId: null });
+
+      const response = await request(app).patch(`/sessions/${sessionId}/complete`);
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        success: false,
+        message: 'Session cannot be completed because it is AVAILABLE',
+      });
+    });
+
+    it('returns 409 when the session is already completed', async () => {
+      await Session.findByIdAndUpdate(sessionId, {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+      });
+
+      const response = await request(app).patch(`/sessions/${sessionId}/complete`);
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        success: false,
+        message: 'Session cannot be completed because it is COMPLETED',
+      });
+    });
+
+    it('allows exactly one of two concurrent completion requests', async () => {
+      const responses = await Promise.all([
+        request(app).patch(`/sessions/${sessionId}/complete`),
+        request(app).patch(`/sessions/${sessionId}/complete`),
+      ]);
+
+      expect(responses.filter((response) => response.status === 200)).toHaveLength(1);
+      expect(responses.filter((response) => response.status === 409)).toHaveLength(1);
+
+      const storedSession = await Session.findById(sessionId);
+      expect(storedSession?.status).toBe('COMPLETED');
+      expect(storedSession?.completedAt).toBeInstanceOf(Date);
+      expect(storedSession?.userId?.toString()).toBe(userId);
+    });
+  });
+
+  describe('POST /sessions/:id/book', () => {
+    let sessionId: string;
+    let firstUserId: string;
+    let secondUserId: string;
+
+    beforeEach(async () => {
+      await Session.deleteMany({});
+      await Teacher.deleteMany({});
+      await User.deleteMany({});
+
+      const [teacher, firstUser, secondUser] = await Promise.all([
+        Teacher.create({
+          fullName: 'Ananya Sharma',
+          email: 'booking.teacher@example.com',
+          specialization: 'Mathematics',
+          experience: 8,
+        }),
+        User.create({
+          fullName: 'First User',
+          email: 'first.booking.user@example.com',
+          phone: '1111111111',
+        }),
+        User.create({
+          fullName: 'Second User',
+          email: 'second.booking.user@example.com',
+          phone: '2222222222',
+        }),
+      ]);
+
+      firstUserId = firstUser.id;
+      secondUserId = secondUser.id;
+      const session = await Session.create({
+        teacherId: teacher._id,
+        startTime: new Date('2026-11-20T10:00:00.000Z'),
+        endTime: new Date('2026-11-20T11:00:00.000Z'),
+      });
+      sessionId = session.id;
+    });
+
+    it('books an available session and associates it with the user', async () => {
+      const response = await request(app)
+        .post(`/sessions/${sessionId}/book`)
+        .send({ userId: firstUserId });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        success: true,
+        message: 'Session booked successfully',
+        data: {
+          _id: sessionId,
+          userId: firstUserId,
+          status: 'BOOKED',
+        },
+      });
+
+      const storedSession = await Session.findById(sessionId);
+      expect(storedSession?.status).toBe('BOOKED');
+      expect(storedSession?.userId?.toString()).toBe(firstUserId);
+    });
+
+    it('returns 404 when the user does not exist', async () => {
+      const response = await request(app)
+        .post(`/sessions/${sessionId}/book`)
+        .send({ userId: new mongoose.Types.ObjectId().toString() });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ success: false, message: 'User not found' });
+      expect((await Session.findById(sessionId))?.status).toBe('AVAILABLE');
+    });
+
+    it('returns 404 when the session does not exist', async () => {
+      const missingSessionId = new mongoose.Types.ObjectId().toString();
+      const response = await request(app)
+        .post(`/sessions/${missingSessionId}/book`)
+        .send({ userId: firstUserId });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ success: false, message: 'Session not found' });
+    });
+
+    it('rejects an invalid session ID', async () => {
+      const response = await request(app).post('/sessions/not-an-object-id/book').send({
+        userId: firstUserId,
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('rejects an invalid user ID', async () => {
+      const response = await request(app)
+        .post(`/sessions/${sessionId}/book`)
+        .send({ userId: 'not-an-object-id' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('returns 409 when the session is already booked', async () => {
+      await Session.findByIdAndUpdate(sessionId, {
+        status: 'BOOKED',
+        userId: firstUserId,
+      });
+
+      const response = await request(app)
+        .post(`/sessions/${sessionId}/book`)
+        .send({ userId: secondUserId });
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        success: false,
+        message: 'Session cannot be booked because it is BOOKED',
+      });
+    });
+
+    it('returns 409 when the session is completed', async () => {
+      await Session.findByIdAndUpdate(sessionId, {
+        status: 'COMPLETED',
+        userId: firstUserId,
+        completedAt: new Date(),
+      });
+
+      const response = await request(app)
+        .post(`/sessions/${sessionId}/book`)
+        .send({ userId: secondUserId });
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({
+        success: false,
+        message: 'Session cannot be booked because it is COMPLETED',
+      });
+    });
+
+    it('allows exactly one of two simultaneous booking requests', async () => {
+      const responses = await Promise.all([
+        request(app).post(`/sessions/${sessionId}/book`).send({ userId: firstUserId }),
+        request(app).post(`/sessions/${sessionId}/book`).send({ userId: secondUserId }),
+      ]);
+
+      const successfulResponses = responses.filter((response) => response.status === 200);
+      const conflictResponses = responses.filter((response) => response.status === 409);
+
+      expect(successfulResponses).toHaveLength(1);
+      expect(conflictResponses).toHaveLength(1);
+      expect(conflictResponses[0].body.success).toBe(false);
+
+      const storedSession = await Session.findById(sessionId);
+      expect(storedSession?.status).toBe('BOOKED');
+      expect([firstUserId, secondUserId]).toContain(storedSession?.userId?.toString());
     });
   });
 

@@ -2,7 +2,7 @@
 
 TypeScript, Express, MongoDB, and Mongoose project foundation for the teacher session booking assignment.
 
-> The project foundation, Create User API, Create Session API, and Available Sessions API are implemented. The remaining assignment APIs are not implemented yet.
+> The project foundation, Create User API, Create Session API, Available Sessions API, Book Session API, Mark Session Complete API, and User Session History API are implemented.
 
 ## Requirements
 
@@ -97,6 +97,30 @@ Overlap prevention currently checks for existing sessions and then inserts. This
 `GET /sessions/available?dateTimestamp=1795161600000`
 
 `dateTimestamp` is a Unix timestamp in milliseconds. The timestamp identifies a UTC calendar date; the endpoint returns sessions whose `startTime` is at or after 00:00 UTC on that date and before 00:00 UTC the following date. The time range is start-inclusive and end-exclusive. Results include selected teacher details and are sorted by start time ascending. The query uses a MongoDB aggregation pipeline.
+
+### Book a session
+
+`POST /sessions/:id/book`
+
+```json
+{
+  "userId": "REPLACE_WITH_USER_OBJECT_ID"
+}
+```
+
+The session is booked only if its status is `AVAILABLE`. The repository performs a single atomic conditional update matching both the session ID and `AVAILABLE` status; concurrent requests cannot both change the same document from `AVAILABLE` to `BOOKED`. A losing request receives HTTP 409. The Postman collection includes a booking request.
+
+### Complete a session
+
+`PATCH /sessions/:id/complete`
+
+No request body is required. Only sessions in `BOOKED` state can be completed; successful requests atomically set `status` to `COMPLETED` and `completedAt` to the current time. A session in another state returns HTTP 409, and an unknown session returns HTTP 404. The Postman collection includes a completion request.
+
+### Get user session history
+
+`GET /users/:id/sessions`
+
+Returns a `data` object with `upcomingSessions` (sessions whose status is `BOOKED`) and `completedSessions` (sessions whose status is `COMPLETED`). `AVAILABLE` sessions are excluded. Results are separated in MongoDB using an aggregation `$facet`; an existing user with no matching sessions receives two empty arrays.
 
 ## Database models
 

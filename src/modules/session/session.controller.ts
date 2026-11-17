@@ -2,7 +2,28 @@ import type { Request, Response } from 'express';
 import { ApiResponse } from '../../utils/ApiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { sessionService } from './session.service';
-import type { AvailableSessionsQuery, CreateSessionInput } from './session.validation';
+import type {
+  AvailableSessionsQuery,
+  BookSessionInput,
+  CompleteSessionInput,
+  CreateSessionInput,
+} from './session.validation';
+
+export const completeSessionController = asyncHandler(
+  async (_request: Request, response: Response): Promise<void> => {
+    const validated = response.locals.validated as CompleteSessionInput;
+    const session = await sessionService.completeSession(validated.params.id);
+    response.status(200).json(new ApiResponse(session, 'Session completed successfully'));
+  },
+);
+
+export const bookSessionController = asyncHandler(
+  async (_request: Request, response: Response): Promise<void> => {
+    const validated = response.locals.validated as BookSessionInput;
+    const session = await sessionService.bookSession(validated.params.id, validated.body);
+    response.status(200).json(new ApiResponse(session, 'Session booked successfully'));
+  },
+);
 
 export const getAvailableSessionsController = asyncHandler(
   async (_request: Request, response: Response): Promise<void> => {

@@ -10,4 +10,11 @@ export const createUserSchema = z.object({
   body: createUserBodySchema,
 });
 
+export const userSessionHistorySchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'id must be a valid ObjectId'),
+  }),
+});
+
 export type CreateUserInput = z.infer<typeof createUserBodySchema>;
+export type UserSessionHistoryParams = z.infer<typeof userSessionHistorySchema>['params'];

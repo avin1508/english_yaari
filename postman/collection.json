@@ -52,6 +52,33 @@
       ]
     },
     {
+      "name": "Get User Session History",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/sessions"
+        },
+        "description": "Returns BOOKED sessions in upcomingSessions and COMPLETED sessions in completedSessions. AVAILABLE sessions are omitted. Results are built using a MongoDB aggregation pipeline."
+      },
+      "response": [
+        {
+          "name": "Session History",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/{{userId}}/sessions"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"User sessions fetched successfully\",\n  \"data\": {\n    \"upcomingSessions\": [\n      {\n        \"_id\": \"674f12345678901234567890\",\n        \"teacherId\": \"674f12345678901234567891\",\n        \"userId\": \"674f12345678901234567892\",\n        \"startTime\": \"2026-11-20T10:00:00.000Z\",\n        \"endTime\": \"2026-11-20T11:00:00.000Z\",\n        \"status\": \"BOOKED\",\n        \"completedAt\": null\n      }\n    ],\n    \"completedSessions\": [\n      {\n        \"_id\": \"674f12345678901234567893\",\n        \"teacherId\": \"674f12345678901234567891\",\n        \"userId\": \"674f12345678901234567892\",\n        \"startTime\": \"2026-11-18T10:00:00.000Z\",\n        \"endTime\": \"2026-11-18T11:00:00.000Z\",\n        \"status\": \"COMPLETED\",\n        \"completedAt\": \"2026-11-18T11:00:00.000Z\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
       "name": "Create Session",
       "request": {
         "method": "POST",
@@ -102,6 +129,110 @@
           "body": "{\n  \"success\": true,\n  \"message\": \"Available sessions fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"674f12345678901234567890\",\n      \"teacher\": {\n        \"_id\": \"674f12345678901234567891\",\n        \"fullName\": \"Rahul Sharma\",\n        \"specialization\": \"Mathematics\",\n        \"experience\": 5\n      },\n      \"startTime\": \"2026-11-20T10:00:00.000Z\",\n      \"endTime\": \"2026-11-20T11:00:00.000Z\",\n      \"status\": \"AVAILABLE\"\n    }\n  ]\n}"
         }
       ]
+    },
+    {
+      "name": "Book Session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/book"
+        },
+        "description": "Set sessionId and userId to existing MongoDB ObjectIds. Success returns HTTP 200. A session that is no longer AVAILABLE returns HTTP 409."
+      },
+      "response": [
+        {
+          "name": "Booked",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/sessions/{{sessionId}}/book"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Session booked successfully\",\n  \"data\": {\n    \"_id\": \"674f12345678901234567890\",\n    \"teacherId\": \"674f12345678901234567891\",\n    \"userId\": \"674f12345678901234567892\",\n    \"startTime\": \"2026-11-20T10:00:00.000Z\",\n    \"endTime\": \"2026-11-20T11:00:00.000Z\",\n    \"status\": \"BOOKED\",\n    \"completedAt\": null\n  }\n}"
+        },
+        {
+          "name": "Already booked",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/sessions/{{sessionId}}/book"
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Session cannot be booked because it is BOOKED\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Complete Session",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/complete"
+        },
+        "description": "Complete a BOOKED session. No request body is required. Success returns HTTP 200; an AVAILABLE or already COMPLETED session returns HTTP 409."
+      },
+      "response": [
+        {
+          "name": "Completed",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/sessions/{{sessionId}}/complete"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Session completed successfully\",\n  \"data\": {\n    \"_id\": \"674f12345678901234567890\",\n    \"teacherId\": \"674f12345678901234567891\",\n    \"userId\": \"674f12345678901234567892\",\n    \"startTime\": \"2026-11-20T10:00:00.000Z\",\n    \"endTime\": \"2026-11-20T11:00:00.000Z\",\n    \"status\": \"COMPLETED\",\n    \"completedAt\": \"2026-11-20T11:00:00.000Z\"\n  }"
+        },
+        {
+          "name": "Invalid session state",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/sessions/{{sessionId}}/complete"
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Session cannot be completed because it is AVAILABLE\"\n}"
+        }
+      ]
     }
   ],
   "variable": [
@@ -116,6 +247,14 @@
     {
       "key": "dateTimestamp",
       "value": "1795161600000"
+    },
+    {
+      "key": "sessionId",
+      "value": "REPLACE_WITH_SESSION_OBJECT_ID"
+    },
+    {
+      "key": "userId",
+      "value": "REPLACE_WITH_USER_OBJECT_ID"
     }
   ]
 }

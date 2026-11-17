@@ -40,5 +40,24 @@ export const availableSessionsSchema = z.object({
   }),
 });
 
+const bookSessionParamsSchema = z.object({
+  id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'id must be a valid ObjectId'),
+});
+
+const bookSessionBodySchema = z.object({
+  userId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'userId must be a valid ObjectId'),
+});
+
+export const bookSessionSchema = z.object({
+  params: bookSessionParamsSchema,
+  body: bookSessionBodySchema,
+});
+
+export const completeSessionSchema = z.object({
+  params: bookSessionParamsSchema,
+});
+
 export type CreateSessionInput = z.infer<typeof createSessionBodySchema>;
 export type AvailableSessionsQuery = z.infer<typeof availableSessionsSchema>['query'];
+export type BookSessionInput = z.infer<typeof bookSessionSchema>;
+export type CompleteSessionInput = z.infer<typeof completeSessionSchema>;
