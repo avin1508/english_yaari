@@ -1,0 +1,9 @@
+{
+  "info": {
+    "_postman_id": "c0fd9462-39b1-42b0-92d9-c5517a365e44",
+    "name": "Teacher Session Booking API",
+    "description": "API requests will be added when the assignment endpoints are implemented.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": []
+}
